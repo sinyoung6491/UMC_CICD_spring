@@ -60,7 +60,6 @@ jobs:
       id: deploy-dev
       # develop 브랜치에서만 배포하고 싶으면 이 if 유지하고,
       # main 에서도 배포하고 싶으면 이 줄을 지우면 됨
-      if: contains(github.ref, 'develop')
       with:
         key: ${{ secrets.PRIVATE_KEY }}
         host: ${{ secrets.HOST_DEV }}
