@@ -2,6 +2,7 @@ package spring.umc.domain.review.service;
 
 import com.querydsl.core.BooleanBuilder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import spring.umc.domain.member.entity.QMember;
@@ -22,6 +23,17 @@ public class ReviewQueryService {
 
     private final ReviewRepository reviewRepository;
 
+    @Transactional(readOnly = true)
+    public Page<ReviewResDTO.Summary> getMyReviews(Long memberId, int page) {
+        Pageable pageable = PageRequest.of(page - 1, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<Review> reviewPage = reviewRepository.findByMember_IdOrderByCreatedAtDesc(memberId, pageable);
+
+        List<ReviewResDTO.Summary> content = ReviewConverter.toSummaryList(reviewPage.getContent());
+
+        return new PageImpl<>(content, pageable, reviewPage.getTotalElements());
+    }
+
     public List<ReviewResDTO.Summary> searchReview(String query, String type) {
 
         // Q클래스 정의
@@ -38,7 +50,7 @@ public class ReviewQueryService {
             builder.and(location.name.contains(query));
         }
         if (type.equals("star")) {
-            builder.and(review.star.goe(Float.parseFloat(query)));
+            builder.and(review.rating.goe(Float.parseFloat(query)));
         }
         if (type.equals("both")) {
 
@@ -48,7 +60,7 @@ public class ReviewQueryService {
 
             // 동적 쿼리
             builder.and(location.name.contains(firstQuery));
-            builder.and(review.star.goe(Float.parseFloat(secondQuery)));
+            builder.and(review.rating.goe(Float.parseFloat(secondQuery)));
         }
 
         // Repository 사용 & 결과 매핑
@@ -89,15 +101,16 @@ public class ReviewQueryService {
     }
     private void applyStar(BooleanBuilder where, QReview r, Integer bucket) {
         switch (bucket) {
-            case 5 -> where.and(r.star.goe(5.0f)); // 딱 5.0만 보려면 eq(5.0f)로 변경
-            case 4 -> where.and(r.star.goe(4.0f).and(r.star.lt(5.0f)));
-            case 3 -> where.and(r.star.goe(3.0f).and(r.star.lt(4.0f)));
-            case 2 -> where.and(r.star.goe(2.0f).and(r.star.lt(3.0f)));
-            case 1 -> where.and(r.star.goe(1.0f).and(r.star.lt(2.0f)));
-            case 0 -> where.and(r.star.lt(1.0f));
+            case 5 -> where.and(r.rating.goe(5.0f)); // 딱 5.0만 보려면 eq(5.0f)로 변경
+            case 4 -> where.and(r.rating.goe(4.0f).and(r.rating.lt(5.0f)));
+            case 3 -> where.and(r.rating.goe(3.0f).and(r.rating.lt(4.0f)));
+            case 2 -> where.and(r.rating.goe(2.0f).and(r.rating.lt(3.0f)));
+            case 1 -> where.and(r.rating.goe(1.0f).and(r.rating.lt(2.0f)));
+            case 0 -> where.and(r.rating.lt(1.0f));
             default -> { /* 적용 안 함 */ }
         }
     }
+
 
 //    @Override
 //    public List<Review> searchReview(
